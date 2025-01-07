@@ -1,28 +1,146 @@
-REMIX DEFAULT WORKSPACE
+# DrivingLicense Smart Contract
 
-Remix default workspace is present when:
-i. Remix loads for the very first time 
-ii. A new workspace is created with 'Default' template
-iii. There are no files existing in the File Explorer
+A Solidity smart contract for managing digital driving licenses on the blockchain. This contract enables the issuance, validation, and renewal of driving licenses with secure record-keeping and event logging.
 
-This workspace contains 3 directories:
+## Features
 
-1. 'contracts': Holds three contracts with increasing levels of complexity.
-2. 'scripts': Contains four typescript files to deploy a contract. It is explained below.
-3. 'tests': Contains one Solidity test file for 'Ballot' contract & one JS test file for 'Storage' contract.
+- Issue new driving licenses with personal information
+- Validate existing licenses and check their status
+- Renew licenses within 30 days of expiration
+- Automatic age verification (minimum 18 years)
+- Event logging for license issuance and renewals
+- Two-year validity period for all licenses
 
-SCRIPTS
+## Contract Details
 
-The 'scripts' folder has four typescript files which help to deploy the 'Storage' contract using 'web3.js' and 'ethers.js' libraries.
+- License: MIT
+- Solidity Version: ^0.8.0
 
-For the deployment of any other contract, just update the contract's name from 'Storage' to the desired contract and provide constructor arguments accordingly 
-in the file `deploy_with_ethers.ts` or  `deploy_with_web3.ts`
+## Data Structures
 
-In the 'tests' folder there is a script containing Mocha-Chai unit tests for 'Storage' contract.
+### License Struct
 
-To run a script, right click on file name in the file explorer and click 'Run'. Remember, Solidity file must already be compiled.
-Output from script will appear in remix terminal.
+The contract uses a `License` struct to store individual license information:
 
-Please note, require/import is supported in a limited manner for Remix supported modules.
-For now, modules supported by Remix are ethers, web3, swarmgw, chai, multihashes, remix and hardhat only for hardhat.ethers object/plugin.
-For unsupported modules, an error like this will be thrown: '<module_name> module require is not supported by Remix IDE' will be shown.
+- `firstName`: First name of the license holder
+- `lastName`: Last name of the license holder
+- `nationality`: Nationality of the license holder
+- `credentialID`: Unique identifier for the license
+- `dateOfBirth`: Unix timestamp of the holder's birth date
+- `issueDate`: Unix timestamp when the license was issued
+- `expiryDate`: Unix timestamp when the license expires
+
+## Main Functions
+
+### issueLicense
+
+```solidity
+function issueLicense(
+    string memory credentialID,
+    string memory firstName,
+    string memory lastName,
+    string memory nationality,
+    uint256 dateOfBirth
+) public
+```
+
+Issues a new driving license with the following checks:
+- Ensures the credential ID is not already in use
+- Verifies the date of birth is in the past
+- Confirms the applicant is at least 18 years old
+- Sets a two-year validity period from the issue date
+
+### validateLicense
+
+```solidity
+function validateLicense(string memory credentialID)
+    public
+    view
+    returns (
+        string memory firstName,
+        string memory lastName,
+        string memory nationality,
+        string memory id,
+        uint256 dateOfBirth,
+        uint256 issueDate,
+        uint256 expiryDate,
+        bool isValid
+    )
+```
+
+Validates an existing license and returns:
+- All stored license details
+- Current validity status based on expiration date
+
+### renewLicense
+
+```solidity
+function renewLicense(string memory credentialID) public
+```
+
+Renews an existing license with the following conditions:
+- License must exist in the system
+- Renewal is only possible within 30 days of expiration
+- Extends validity for two years from the renewal date
+
+## Events
+
+The contract emits the following events:
+
+### LicenseIssued
+Triggered when a new license is issued, including all license details:
+- Credential ID
+- Personal information
+- Issue and expiry dates
+
+### LicenseRenewed
+Triggered when a license is renewed, including:
+- Credential ID
+- New expiry date
+
+## Usage Examples
+
+### Issuing a New License
+
+```solidity
+contract.issueLicense(
+    "DL123456",
+    "John",
+    "Doe",
+    "US",
+    1672531200 // Unix timestamp for date of birth
+);
+```
+
+### Validating a License
+
+```solidity
+(
+    string memory firstName,
+    string memory lastName,
+    string memory nationality,
+    string memory id,
+    uint256 dateOfBirth,
+    uint256 issueDate,
+    uint256 expiryDate,
+    bool isValid
+) = contract.validateLicense("DL123456");
+```
+
+### Renewing a License
+
+```solidity
+contract.renewLicense("DL123456");
+```
+
+## Security Considerations
+
+1. The contract uses internal storage for the licenses mapping, which means derived contracts can access the data
+2. All dates are handled using Unix timestamps to ensure consistency
+3. Age verification is built into the license issuance process
+4. License existence is verified before any operations
+5. Renewal window is restricted to prevent early renewals
+
+## License
+
+This project is licensed under the MIT License - see the SPDX-License-Identifier at the top of the contract file for details.
